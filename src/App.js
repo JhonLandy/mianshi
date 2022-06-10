@@ -9,23 +9,29 @@ function getDistance(start, end) {
     const k = Math.abs(y1 - y2)
     return Math.sqrt(l * l, k * k)
 }
-function calc(positions) {
+function calc(positions, path) {
+    const _path = [...path]
     const len = positions.length
-    let index = 0
-    let pre = positions[index]
+    let pre = _path.shift()
+    let next = _path.shift()
     const result = []
     let distance = 0
-    while (index < len) {
-        const next = positions[index + 1]
-        if (!next) { // 到达最后一个
-            distance += getDistance(positions[0], positions[len - 1])
-            result.push([...positions[0], ...positions[len - 1]])
-        } else {
-            distance += getDistance(pre, next)
-            result.push([...pre, ...next])
-        }
+    while (true) {
+        const preP= positions[pre]
+        const nextP = positions[next]
+
+        distance += getDistance(preP, nextP)
+        result.push([...preP, ...nextP])
         pre = next
-        index++
+        next = _path.shift()
+
+        if (next === void 0) {// 到达最后一个
+            const start = path[0]
+            const end = path[len - 1]
+            distance += getDistance(positions[start], positions[end])
+            result.push([...positions[start], ...positions[end]])
+            break
+        }
     }
     return [result, distance]
 }
@@ -35,13 +41,15 @@ function dp(node) {
     const mark = {} // 回溯标记
     function find(index = 0, temp = []) {
         if (temp.length === len) {
-            result.push(temp)
+            result.push([...temp])
             return
         }
         for (let i = 0; i < len;i++) {
             if (!mark[i]) {
                 mark[i] = true
-                find(index + 1, [...temp, node[i]])
+                temp.push(i)
+                find(index + 1, temp)
+                temp.pop()
                 mark[i] = null
             }
         }
@@ -51,21 +59,38 @@ function dp(node) {
 }
 let GLOBAL_MIN_DIS = Number.MAX_VALUE
 let GLOBAL_RUN = false
-function print(index, circles, callback, isRun) {
-    const _circles = [...circles]
-    const circle = _circles.shift()
-    if (!circle) {
+function print(paths, callback, isRun) {
+    const _paths = [...paths]
+    const path = _paths.shift()
+    if (!path) {
         return
     }
     requestAnimationFrame(() => {
         if (!GLOBAL_RUN) {
             return
         }
-        callback(circle)
-        print(index + 1, _circles, callback, isRun)
+        callback(path)
+        print(_paths, callback, isRun)
     })
 }
 const MinBlock = memo((props) => {
+    const { data } = props
+    return (
+        <Fragment>
+            {data.map(([x, y], index) => {
+                const color = `rgb(
+                                ${Math.floor(Math.random() * 256)}, 
+                                ${Math.floor(Math.random() * 256)}, 
+                                ${Math.floor(Math.random() * 256)}
+                            )`
+                return (
+                    <circle key={index} cx={x} cy={y}  fill={color} r="5"/>
+                )
+            })}
+        </Fragment>
+    )
+})
+const Block = memo((props) => {
     const { data } = props
     return (
         <Fragment>
@@ -96,8 +121,8 @@ function App() {
     const onStart = () => {
         if (!isRun) {
             const paths = dp(circles)
-            print(0, paths, (circles) => {
-                const [lines, dis] = calc(circles)
+            print(paths, (path) => {
+                const [lines, dis] = calc(circles, path)
                 if (dis < GLOBAL_MIN_DIS) {
                     setMaxCircles(circles)
                     setMaxLines(lines)
@@ -155,16 +180,7 @@ function App() {
                                 )
                             })
                         }
-                        {circles.map(([x, y], index) => {
-                            const color = `rgb(
-                        ${Math.floor(Math.random() * 256)}, 
-                        ${Math.floor(Math.random() * 256)}, 
-                        ${Math.floor(Math.random() * 256)}
-                    )`
-                            return (
-                                <circle  key={index}  cx={x} cy={y} r="5" fill={color}/>
-                            )
-                        })}
+                        <Block data={circles}/>
                     </svg>
                 </section>
                 <section>
