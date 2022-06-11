@@ -1,4 +1,3 @@
-import logo from './logo.svg';
 import './App.css';
 import {useState, memo, Fragment } from "react"
 function getDistance(start, end) {
