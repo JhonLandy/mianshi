@@ -38,33 +38,6 @@ function calc(positions, path) {
     }
     return [result, distance]
 }
-function dp1(node) {
-    function find(index, results = []) {
-        const len = results.length
-        const res = []
-        if (len === 0) {
-            res.push([index])
-            return res
-        }
-        for (let i = 0;i < len;i++) {
-            const result = results[i]
-            const len = result.length
-            for (let j = 0;j <= len;j++) {
-                const font = result.slice(0, j)
-                const end = result.slice(j)
-                font.push(index)
-                res.push(font.concat(end))
-            }
-        }
-        return res
-    }
-    const len = node.length
-    let findResult = []
-    for (let i = 0;i < len;i++) {
-        findResult = find(i, findResult)
-    }
-    return findResult
-}
 function getCombinations(n) {
     let combinations = 1
     for(let i = 1;i <= n;i++) {
