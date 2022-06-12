@@ -1,6 +1,6 @@
 import './App.css';
 import {useState, memo, Fragment } from "react"
-import { isEmpty, length } from "ramda"
+import { length } from "ramda"
 
 let GLOBAL_MIN_DIS = Number.MAX_VALUE
 let GLOBAL_RUN = false
