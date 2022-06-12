@@ -172,7 +172,7 @@ const Block = memo((props) => {
         </Fragment>
     )
 })
-const splitTask = requestIdleCallback ?  requestIdleCallback : requestIdleCallback
+const splitTask = window.requestIdleCallback ?  requestIdleCallback : window.setTimeout
 function App() {
 
     const [circles, setCircles] = useState([])
