@@ -111,7 +111,7 @@ function dp(node, callback) {
 function getPrint(callback) {
     const paths = []
     let isPaint = false
-    function print() {
+    function print(paths, callback) {
         const path = paths.shift()
         if (!path) {
             return
@@ -134,7 +134,7 @@ function getPrint(callback) {
             }
         },
         push: newPaths => {
-            paths.push(newPaths)
+            paths.push(...newPaths)
         }
     }
 }
@@ -183,6 +183,7 @@ function App() {
     const [maxLines, setMaxLines] = useState([])
     const [isRun, setRun] = useState(false)
     const [combinations, setCombinations] = useState(1)
+    const [cases, setCase] = useState(0)
 
     const onStart = () => {
         if (!isRun) {
@@ -196,11 +197,12 @@ function App() {
                     setMinDistance(dis)
                     GLOBAL_MIN_DIS = dis
                 }
+                setCase(cases => cases + 1)
                 setLines(lines)
                 setDistance(dis)
             })
             const sum = dp(circles, function (paths) {
-                printer.push(...paths)
+                printer.push(paths)
                 printer.print()
             })
             setCombinations(sum)
@@ -223,7 +225,9 @@ function App() {
             </div>
             <div style={{display: "flex", justifyContent: "space-between"}}>
                 <section>
-                    <div style={{ textAlign: "left" }}>length: {distance}</div>
+                    <div style={{ textAlign: "left" }}>
+                        case: {cases} length: {distance}
+                    </div>
                     <svg
                         width="200"
                         height="200"
