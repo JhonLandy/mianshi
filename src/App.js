@@ -1,6 +1,9 @@
-import logo from './logo.svg';
 import './App.css';
 import {useState, memo, Fragment } from "react"
+import { isEmpty, length } from "ramda"
+
+let GLOBAL_MIN_DIS = Number.MAX_VALUE
+let GLOBAL_RUN = false
 function getDistance(start, end) {
     const [x1, y1] = start
     const [x2, y2] = end
@@ -35,43 +38,132 @@ function calc(positions, path) {
     }
     return [result, distance]
 }
-function dp(node) {
-    const result = []
-    const len = node.length
-    const mark = {} // 回溯标记
-    function find(index = 0, temp = []) {
-        if (temp.length === len) {
-            result.push([...temp])
-            return
+function dp1(node) {
+    function find(index, results = []) {
+        const len = results.length
+        const res = []
+        if (len === 0) {
+            res.push([index])
+            return res
         }
-        for (let i = 0; i < len;i++) {
+        for (let i = 0;i < len;i++) {
+            const result = results[i]
+            const len = result.length
+            for (let j = 0;j <= len;j++) {
+                const font = result.slice(0, j)
+                const end = result.slice(j)
+                font.push(index)
+                res.push(font.concat(end))
+            }
+        }
+        return res
+    }
+    const len = node.length
+    let findResult = []
+    for (let i = 0;i < len;i++) {
+        findResult = find(i, findResult)
+    }
+    return findResult
+}
+function getCombinations(n) {
+    let combinations = 1
+    for(let i = 1;i <= n;i++) {
+        combinations *= i
+    }
+    return combinations
+}
+function dp(node, callback) {
+    const mark = {} // 回溯标记
+    const path = []
+
+    const nLen = length(node)
+    const sum = getCombinations(nLen)
+    let isPause = false
+    let isReStart = false
+    let result = []
+    let num = 0
+    function find(pIndex = 0) {
+        const pLen = length(path)
+        let start = 0
+
+        if (isReStart) {
+            isPause = false
+            if (pIndex === pLen - 1) {
+                start = path[pIndex] + 1
+                path.pop()
+                isReStart = false
+            } else {
+                start = path[pIndex]
+            }
+        } else {
+            if (pLen === nLen) {
+                result.push([...path])
+                num++
+                if (num === sum) {
+                    callback(result)
+                } else {
+                    if (length(result) >= 100) {
+                        isPause = true
+                        isReStart = true
+                        callback(result)
+                        result = []
+                        requestIdleCallback(() => {
+                            console.log("----------------------开始增量-------------------")
+                            find()
+                        })
+                    }
+                }
+                return
+            }
+        }
+        for (let i = start; i < nLen;i++) {
+            if (!GLOBAL_RUN || isPause) break;
             if (!mark[i]) {
                 mark[i] = true
-                temp.push(i)
-                find(index + 1, temp)
-                temp.pop()
+                if (!isReStart) {
+                    path.push(i)
+                }
+                find(pIndex + 1)
                 mark[i] = null
+                if (!isReStart) {
+                    path.pop()
+                };
             }
         }
     }
     find()
-    return result
+    return sum
 }
-let GLOBAL_MIN_DIS = Number.MAX_VALUE
-let GLOBAL_RUN = false
-function print(paths, callback, isRun) {
-    const _paths = [...paths]
-    const path = _paths.shift()
-    if (!path) {
-        return
-    }
-    requestAnimationFrame(() => {
-        if (!GLOBAL_RUN) {
+
+function getPrint(callback) {
+    const paths = []
+    let isPaint = false
+    function print() {
+        const path = paths.shift()
+        if (!path) {
             return
         }
-        callback(path)
-        print(_paths, callback, isRun)
-    })
+        requestAnimationFrame(() => {
+            if (!GLOBAL_RUN) {
+                return
+            }
+            callback(path)
+            print(paths, callback)
+        })
+    }
+
+    return {
+        print: () => {
+            if (!isPaint) {
+                isPaint = true
+                print(paths, callback)
+                isPaint = false
+            }
+        },
+        push: newPaths => {
+            paths.push(newPaths)
+        }
+    }
 }
 const MinBlock = memo((props) => {
     const { data } = props
@@ -120,8 +212,9 @@ function App() {
 
     const onStart = () => {
         if (!isRun) {
-            const paths = dp(circles)
-            print(paths, (path) => {
+            GLOBAL_RUN = true
+            setRun(GLOBAL_RUN)
+            const printer = getPrint((path) => {
                 const [lines, dis] = calc(circles, path)
                 if (dis < GLOBAL_MIN_DIS) {
                     setMaxCircles(circles)
@@ -129,15 +222,17 @@ function App() {
                     setMinDistance(dis)
                     GLOBAL_MIN_DIS = dis
                 }
-                setCombinations(paths.length)
                 setLines(lines)
                 setDistance(dis)
-            }, isRun)
-            setRun(true)
-            GLOBAL_RUN = true
+            })
+            const sum = dp(circles, function (paths) {
+                printer.push(...paths)
+                printer.print()
+            })
+            setCombinations(sum)
         } else {
-            setRun(false)
             GLOBAL_RUN = false
+            setRun(GLOBAL_RUN)
         }
     }
     const onDraw = (e) => {
