@@ -80,7 +80,7 @@ function dp(node, callback) {
                         isReStart = true
                         callback(result)
                         result = []
-                        requestIdleCallback(() => {
+                        splitTask(() => {
                             console.log("----------------------开始增量-------------------")
                             find()
                         })
@@ -172,6 +172,7 @@ const Block = memo((props) => {
         </Fragment>
     )
 })
+const splitTask = requestIdleCallback ?  requestIdleCallback : requestIdleCallback
 function App() {
 
     const [circles, setCircles] = useState([])
