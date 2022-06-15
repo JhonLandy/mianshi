@@ -52,7 +52,7 @@ function getCombinations(n) {
 }
 function dp(node, callback) {
     const mark = {} // 回溯标记
-    const path = []
+    let path = []
 
     const nLen = length(node)
     const sum = getCombinations(nLen)
@@ -65,6 +65,7 @@ function dp(node, callback) {
             isPause = false
             isReStart = false
             result = []
+            path = []
             num = 0
             return
         }
@@ -85,6 +86,9 @@ function dp(node, callback) {
                 num++
                 if (num === sum) {
                     callback(result)
+                    result = []
+                    path = []
+                    num = 0
                 } else {
                     if (length(result) >= 100) {
                         callback(result)
