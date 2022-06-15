@@ -52,7 +52,7 @@ function App() {
     const dpTer = useMemo(() => dp(circles, function (paths) {
         printer.push(paths)
         printer.print()
-    }), [circles])
+    }), [circles, printer])
     const onStart = () => {
         if (!isRun) {
             setState({ ...state, isRun: true, cases: 0 })
