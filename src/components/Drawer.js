@@ -22,7 +22,7 @@ const Drawer = memo((props) => {
     }), [circles])
     return (
         <section>
-            <div style={{ textAlign: "left" }}>{ cases ? `case: ${cases}` :  ""}length: {circles.length > 0 ? distance: 0}</div>
+            <div style={{ textAlign: "left" }}>{ cases > 0 ? `case: ${cases}` :  ""}length: {circles.length > 0 ? distance: 0}</div>
             <svg width="200" height="200" style={{ border: "1px solid #ccc"}} onClick={onDraw}>
                 {
                     lines.map(([x1, y1, x2, y2], index) => {

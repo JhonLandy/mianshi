@@ -144,7 +144,7 @@ function getPrint(callback) {
         }
         requestAnimationFrame(() => {
             if (isPaint) {
-                callback(path)
+                GLOBAL_RUN && callback(path)
                 print(paths, callback)
             } else {
                 paths = []

@@ -55,10 +55,10 @@ function App() {
     }), [circles])
     const onStart = () => {
         if (!isRun) {
-            setState({ ...state, isRun: true })
+            setState({ ...state, isRun: true, cases: 0 })
             dpTer.run()
         } else {
-            setState({ ...state, isRun: false })
+            setState({ ...initialState,  circles, cases: 0 })
             dpTer.stop()
         }
     }
