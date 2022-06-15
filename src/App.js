@@ -1,5 +1,5 @@
 import './App.css';
-import {useState, memo, Fragment, useMemo} from "react"
+import {useState, memo, Fragment, useMemo, useCallback} from "react"
 import { length } from "ramda"
 import Drawer from "./components/Drawer";
 let GLOBAL_MIN_DIS = Number.MAX_VALUE
@@ -56,9 +56,15 @@ function dp(node, callback) {
     let result = []
     let num = 0
     function find(pIndex = 0) {
+        if (isStop) {
+            isPause = false
+            isReStart = false
+            num = 0
+            result = []
+            return
+        }
         const pLen = length(path)
         let start = 0
-        if (isStop) return;
         if (isReStart) {
             isPause = false
             if (pIndex === pLen - 1) {
@@ -89,7 +95,7 @@ function dp(node, callback) {
             }
         }
         for (let i = start; i < nLen;i++) {
-            if (isPause) break;
+            if (isPause || isStop) break;
             if (!mark[i]) {
                 mark[i] = true
                 if (!isReStart) {
@@ -110,13 +116,16 @@ function dp(node, callback) {
         },
         stop: function () {
             isStop = true
+            isPause = false
+            isReStart = false
         }
     }
 }
 
 function getPrint(callback) {
-    const paths = []
+    let paths = []
     let isPaint = false
+
     function print(paths, callback) {
         const path = paths.shift()
         if (!path) {
@@ -144,12 +153,13 @@ function getPrint(callback) {
         },
         stopPrint: () => {
             isPaint = false
+            paths = []
         }
     }
 }
 const splitTask = window.requestIdleCallback ?  requestIdleCallback : window.setTimeout
 function App() {
-    const [state, setState] = useState({
+    const initialState = {
         circles: [],
         lines: [],
         maxCircles: [],
@@ -158,7 +168,8 @@ function App() {
         minDistance: Number.MAX_VALUE,
         isRun:false,
         cases: 0
-    })
+    }
+    const [state, setState] = useState(initialState)
     const {
         circles,
         lines,
