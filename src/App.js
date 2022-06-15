@@ -58,7 +58,7 @@ function App() {
             setState({ ...state, isRun: true, cases: 0 })
             dpTer.run()
         } else {
-            setState({ ...initialState,  circles, cases: 0 })
+            setState({ ...state, isRun: false, cases: 0 })
             dpTer.stop()
         }
     }
