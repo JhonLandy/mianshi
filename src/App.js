@@ -1,7 +1,7 @@
 import './App.css';
-import {useState, memo, Fragment } from "react"
+import {useState, memo, Fragment, useMemo} from "react"
 import { length } from "ramda"
-
+import Drawer from "./components/Drawer";
 let GLOBAL_MIN_DIS = Number.MAX_VALUE
 let GLOBAL_RUN = false
 function getDistance(start, end) {
@@ -22,7 +22,6 @@ function calc(positions, path) {
     while (true) {
         const preP= positions[pre]
         const nextP = positions[next]
-
         distance += getDistance(preP, nextP)
         result.push([...preP, ...nextP])
         pre = next
@@ -53,12 +52,13 @@ function dp(node, callback) {
     const sum = getCombinations(nLen)
     let isPause = false
     let isReStart = false
+    let isStop = true
     let result = []
     let num = 0
     function find(pIndex = 0) {
         const pLen = length(path)
         let start = 0
-
+        if (isStop) return;
         if (isReStart) {
             isPause = false
             if (pIndex === pLen - 1) {
@@ -76,21 +76,20 @@ function dp(node, callback) {
                     callback(result)
                 } else {
                     if (length(result) >= 100) {
-                        isPause = true
-                        isReStart = true
                         callback(result)
-                        result = []
                         splitTask(() => {
-                            console.log("----------------------开始增量-------------------")
                             find()
                         })
+                        result = []
+                        isPause = true
+                        isReStart = true
                     }
                 }
                 return
             }
         }
         for (let i = start; i < nLen;i++) {
-            if (!GLOBAL_RUN || isPause) break;
+            if (isPause) break;
             if (!mark[i]) {
                 mark[i] = true
                 if (!isReStart) {
@@ -104,8 +103,15 @@ function dp(node, callback) {
             }
         }
     }
-    find()
-    return sum
+    return {
+        run: function () {
+            isStop = false
+            find()
+        },
+        stop: function () {
+            isStop = true
+        }
+    }
 }
 
 function getPrint(callback) {
@@ -114,10 +120,11 @@ function getPrint(callback) {
     function print(paths, callback) {
         const path = paths.shift()
         if (!path) {
+            isPaint = false
             return
         }
         requestAnimationFrame(() => {
-            if (!GLOBAL_RUN) {
+            if (!isPaint) {
                 return
             }
             callback(path)
@@ -130,159 +137,102 @@ function getPrint(callback) {
             if (!isPaint) {
                 isPaint = true
                 print(paths, callback)
-                isPaint = false
             }
         },
         push: newPaths => {
             paths.push(...newPaths)
+        },
+        stopPrint: () => {
+            isPaint = false
         }
     }
 }
-const MinBlock = memo((props) => {
-    const { data } = props
-    return (
-        <Fragment>
-            {data.map(([x, y], index) => {
-                const color = `rgb(
-                                ${Math.floor(Math.random() * 256)}, 
-                                ${Math.floor(Math.random() * 256)}, 
-                                ${Math.floor(Math.random() * 256)}
-                            )`
-                return (
-                    <circle key={index} cx={x} cy={y}  fill={color} r="5"/>
-                )
-            })}
-        </Fragment>
-    )
-})
-const Block = memo((props) => {
-    const { data } = props
-    return (
-        <Fragment>
-            {data.map(([x, y], index) => {
-                const color = `rgb(
-                                ${Math.floor(Math.random() * 256)}, 
-                                ${Math.floor(Math.random() * 256)}, 
-                                ${Math.floor(Math.random() * 256)}
-                            )`
-                return (
-                    <circle key={index} cx={x} cy={y}  fill={color} r="5"/>
-                )
-            })}
-        </Fragment>
-    )
-})
 const splitTask = window.requestIdleCallback ?  requestIdleCallback : window.setTimeout
 function App() {
+    const [state, setState] = useState({
+        circles: [],
+        lines: [],
+        maxCircles: [],
+        maxLines: [],
+        distance: 0,
+        minDistance: Number.MAX_VALUE,
+        isRun:false,
+        cases: 0
+    })
+    const {
+        circles,
+        lines,
+        maxCircles,
+        maxLines,
+        distance,
+        minDistance,
+        cases,
+        isRun
+    } = state
 
-    const [circles, setCircles] = useState([])
-    const [lines, setLines] = useState([])
-    const [maxCircles, setMaxCircles] = useState([])
-    const [distance, setDistance] = useState(0)
-    const [minDistance, setMinDistance] = useState(0)
-    const [maxLines, setMaxLines] = useState([])
-    const [isRun, setRun] = useState(false)
-    const [combinations, setCombinations] = useState(1)
-    const [cases, setCase] = useState(0)
-
+    const combinations = useMemo(() => getCombinations(length(circles)), [circles])
+    const printer = useMemo(() => getPrint((path) => {
+        const [lines, distance] = calc(circles, path)
+        setState(state => {
+            const { minDistance } = state
+            const newState = {
+                ...state,
+                lines,
+                distance,
+                cases: state.cases + 1
+            }
+            if (distance < minDistance) {
+                Object.assign(newState, {
+                    maxLines: lines,
+                    minDistance: distance,
+                    maxCircles: state.circles,
+                })
+            }
+            return newState
+        })
+    }), [circles])
+    const dpTer = useMemo(() => dp(circles, function (paths) {
+        printer.push(paths)
+        printer.print()
+    }), [circles])
     const onStart = () => {
         if (!isRun) {
-            GLOBAL_RUN = true
-            setRun(GLOBAL_RUN)
-            const printer = getPrint((path) => {
-                const [lines, dis] = calc(circles, path)
-                if (dis < GLOBAL_MIN_DIS) {
-                    setMaxCircles(circles)
-                    setMaxLines(lines)
-                    setMinDistance(dis)
-                    GLOBAL_MIN_DIS = dis
-                }
-                setCase(cases => cases + 1)
-                setLines(lines)
-                setDistance(dis)
-            })
-            const sum = dp(circles, function (paths) {
-                printer.push(paths)
-                printer.print()
-            })
-            setCombinations(sum)
+            setState({ ...state, isRun: true })
+            dpTer.run()
         } else {
-            GLOBAL_RUN = false
-            setRun(GLOBAL_RUN)
+            setState({ ...state, isRun: false })
+            dpTer.stop()
+            printer.stopPrint()
         }
     }
     const onDraw = (e) => {
         const x = e.clientX
         const y = e.clientY
         const { left } = e.target.getBoundingClientRect()
-        setCircles([...circles, [x - left, y - 59.5]])
+        setState({ ...state, circles: [ ...circles, [x - left, y - 59.5]] })
     }
-
     return (
         <div className="App" style={{ margin: "0 auto", width: "450px"}}>
             <div style={{ textAlign: "left", height: "25px" }}>
                 <p>Combinations: {combinations ?? 1}</p>
             </div>
             <div style={{display: "flex", justifyContent: "space-between"}}>
-                <section>
-                    <div style={{ textAlign: "left" }}>
-                        case: {cases} length: {distance}
-                    </div>
-                    <svg
-                        width="200"
-                        height="200"
-                        x="1"
-                        y="10"
-                        style={{ border: "1px solid #ccc"}}
-                        onClick={onDraw}
-                    >
-                        {
-                            lines.map(([x1, y1, x2, y2], index) => {
-
-                                return (
-                                    <line
-                                        key={index}
-                                        x1={x1}
-                                        y1={y1}
-                                        x2={x2}
-                                        y2={y2}
-                                        strokeWidth="5"
-                                        stroke="palegreen"
-                                    >
-                                    </line>
-                                )
-                            })
-                        }
-                        <Block data={circles}/>
-                    </svg>
-                </section>
-                <section>
-                    <div style={{ textAlign: "left" }}>length: {minDistance}</div>
-                    <svg width="200" height="200" style={{ border: "1px solid #ccc"}}>
-                        {
-                            maxLines.map(([x1, y1, x2, y2], index) => {
-
-                                return (
-                                    <line
-                                        key={index}
-                                        x1={x1}
-                                        y1={y1}
-                                        x2={x2}
-                                        y2={y2}
-                                        strokeWidth="5"
-                                        stroke="palegreen"
-                                    >
-                                    </line>
-                                )
-                            })
-                        }
-                        <MinBlock data={maxCircles}/>
-                    </svg>
-                </section>
+               <Drawer
+                   circles={circles}
+                   lines={lines}
+                   onDraw={onDraw}
+                   distance={distance}
+                   cases={cases}
+               />
+               <Drawer
+                   circles={maxCircles}
+                   lines={maxLines}
+                   distance={minDistance}
+               />
             </div>
             <button style={{ width: "100%" }} onClick={onStart}>{isRun ? "stop" : "start"}</button>
             <div>
-                <p>p{`pointer(${circles.length})`}</p>
+                <p>p{`pointer(${circles?.length})`}</p>
                 <div style={{ textAlign: "left", border: "1px solid #ccc"}}>{
                     circles.map(([x, y], index) => {
                         return <div key={index} style={{ borderTop: "1px solid #ccc"}}>{`x:${x} y:${y}`}</div>
