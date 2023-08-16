@@ -20,6 +20,6 @@ Launches the test runner in the interactive watch mode.\
 See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
 
-### URL: https://62a9e619a1585300082de8af--cool-blini-53e241.netlify.app/
+### URL: (https://cool-blini-53e241.netlify.app)
 
 
